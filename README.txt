@@ -1,4 +1,3 @@
-# lampara-iot
 Código de la lámpara IoT en Arduino Cloud para ESP8266
 
 #include <Wire.h>

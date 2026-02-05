@@ -17,8 +17,7 @@ Adafruit_SSD1306 display(128, 64, &Wire, -1); // instanciamos la pantalla oled
 
 int led_interno = 2;
 int LED_PIN = 14;
-int diferencia = 0;
-int threshold = 10;
+bool alarmaDisparada = false;
 
 void setup() {
   // conectar a arduino cloud
@@ -73,26 +72,35 @@ void loop() {
     struct tm *timeInfo = localtime(&now);
     display.print(timeInfo->tm_hour);
     display.print(":");
+    if(timeInfo->tm_min < 10) {
+      display.print("0");
+    }
     display.print(timeInfo->tm_min);
 
     // código de la alarma
     time_t alarmaTime = alarma;
     struct tm *alarmaInfo = localtime(&alarmaTime);
-    if(hayAlarma) {
-      if(timeInfo->tm_hour == alarmaInfo->tm_hour &&
-      timeInfo->tm_min == alarmaInfo->tm_min) {
-        for(int i=0;i<5;i++) {
-          digitalWrite(12, HIGH);
-          delay(20);
-          digitalWrite(12, LOW);
-          delay(40);
-          digitalWrite(12, HIGH);
-          delay(20);
-          digitalWrite(12, LOW);
-          delay(500);
-        }
+
+    Serial.print("Hora actual: ");
+    Serial.print(timeInfo->tm_hour);
+    Serial.print(":");
+    Serial.println(timeInfo->tm_min);
+    Serial.print("Hora alarma: ");
+    Serial.print(alarmaInfo->tm_hour);
+    Serial.print(":");
+    Serial.println(alarmaInfo->tm_min);
+    
+    if (hayAlarma) {
+      if (!alarmaDisparada && now >= alarmaTime && now < (alarmaTime + 60)) {
+        alarmaDisparada = true; activarAlarma();
       }
+      if (alarmaDisparada && now >= (alarmaTime + 60)) {
+        alarmaDisparada = false; // permitir futuras alarmas
+      }
+    } else {
+      alarmaDisparada = false;
     }
+    
   } else {
     display.setTextSize(2);
     display.println("Conectando...");
@@ -101,6 +109,19 @@ void loop() {
   
   delay(1000); // actualizar la hora cada segundo también significa actualizar la luz con el modo automático cada segundo (los cambios no son tan suaves)
   // en el caso de bajar el delay, la pantalla oled tiene problemas por refrescarse tan rápido
+}
+
+void activarAlarma() {
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(12, HIGH);
+    delay(20);
+    digitalWrite(12, LOW);
+    delay(40);
+    digitalWrite(12, HIGH);
+    delay(20);
+    digitalWrite(12, LOW);
+    delay(500);
+  }
 }
 
 void onEstadoChange()  {
